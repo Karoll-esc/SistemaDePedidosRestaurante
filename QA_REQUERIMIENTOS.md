@@ -589,10 +589,10 @@ Tiempo = (2 * 10) + (1 * 4) = 24 segundos
 **Prioridad:** Alta
 
 **Casos:**
-- [ ] Enviar pedido con SQL injection en customerName
-- [ ] Enviar pedido con XSS en note
-- [ ] Enviar pedido con unitPrice negativo
-- [ ] Enviar pedido con quantity = 999999
+- [x] Enviar pedido con SQL injection en customerName
+- [x] Enviar pedido con XSS en note
+- [x] Enviar pedido con unitPrice negativo
+- [x] Enviar pedido con quantity = 999999
 
 **Resultado Esperado:**
 - Todos deben ser rechazados o sanitizados
@@ -603,8 +603,8 @@ Tiempo = (2 * 10) + (1 * 4) = 24 segundos
 **Prioridad:** Alta
 
 **Casos:**
-- [ ] Request desde origen no permitido debe ser rechazado
-- [ ] Request desde localhost:5173 debe ser aceptado
+- [x] Request desde origen no permitido debe ser rechazado
+- [x] Request desde localhost:5173 debe ser aceptado
 
 ---
 
