@@ -1,0 +1,53 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Panel web: http://localhost:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  python-ms:
+    build:
+      context: ./orders-producer-python
+      dockerfile: Dockerfile
+    container_name: python-ms
+    environment:
+      # El MS de Python usa CLOUDAMQP_URL (pika.URLParameters)
+      - CLOUDAMQP_URL=amqp://guest:guest@rabbitmq:5672/
+      - ORDERS_QUEUE=orders.new
+    depends_on:
+      - rabbitmq
+    ports:
+      - "8000:8000"
+
+  node-ms:
+    build:
+      context: ./orders-producer-node
+      dockerfile: Dockerfile
+    container_name: node-ms
+    environment:
+      # Forzamos el uso de RabbitMQ local dentro del compose
+      - AMQP_CONNECTION_TYPE=local
+      - AMQP_LOCAL_HOST=rabbitmq
+      - AMQP_LOCAL_PORT=5672
+      - AMQP_LOCAL_USER=guest
+      - AMQP_LOCAL_PASS=guest
+      - AMQP_LOCAL_PROTOCOL=amqp
+    depends_on:
+      - rabbitmq
+    ports:
+      - "3002:3002"
+      - "4000:4000"
+
+  front:
+    build:
+      context: ./orders-producer-frontend
+    container_name: front
+    depends_on:
+      - python-ms
+      - node-ms
+    ports:
+      - "5173:5173"

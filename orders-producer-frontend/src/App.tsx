@@ -3,7 +3,7 @@ import ProductCard from "./components/ProductCard";
 import OrderSidebar from "./components/OrderSidebar";
 
 // 👉 Backend Python que RECIBE el pedido (producer)
-const API_URL = "http://localhost:8000/api/v1/orders/";
+const API_URL = "http://localhost:8000/api/v1/orders";
 
 // 👉 Microservicio de cocina (Node + RabbitMQ)
 const KITCHEN_HTTP_URL = "http://localhost:3002/kitchen/orders";
