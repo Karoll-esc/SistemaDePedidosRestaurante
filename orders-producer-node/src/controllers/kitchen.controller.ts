@@ -27,3 +27,7 @@ export function markOrderReady(id: string) {
   const pedido = pedidosEnCocina.find(o => o.id === id);
   if (pedido) pedido.status = "ready";
 }
+
+export function removeOrderFromKitchen(id: string) {
+  pedidosEnCocina = pedidosEnCocina.filter((p) => p.id !== id);
+}

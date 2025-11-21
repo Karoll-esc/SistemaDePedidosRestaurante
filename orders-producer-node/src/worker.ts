@@ -2,7 +2,11 @@
 import { notifyClients } from "./wsServer";
 import { OrderMessage } from "./models/order";
 import { getChannel } from "./amqp";
-import { addKitchenOrder, markOrderReady } from "./controllers/kitchen.controller";
+import {
+  addKitchenOrder,
+  markOrderReady,
+  removeOrderFromKitchen
+} from "./controllers/kitchen.controller";
 
 // tiempos base por producto "normalizado"
 const tiempos: Record<string, number> = {
@@ -72,6 +76,9 @@ export async function startWorker() {
             table: pedido.table,
             finishedAt: new Date().toISOString(),
           });
+
+             // 🔥 eliminar de la cocina
+          removeOrderFromKitchen(pedido.id);
 
           channel.ack(msg);
 
