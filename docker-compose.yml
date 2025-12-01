@@ -8,13 +8,11 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-    # 🔥 Agregar health check
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
 
   python-ms:
     build:
@@ -26,7 +24,7 @@ services:
       - ORDERS_QUEUE=orders.new
     depends_on:
       rabbitmq:
-        condition: service_healthy  # 🔥 Esperar a que RabbitMQ esté healthy
+        condition: service_healthy
     ports:
       - "8000:8000"
 
@@ -44,7 +42,7 @@ services:
       - AMQP_LOCAL_PROTOCOL=amqp
     depends_on:
       rabbitmq:
-        condition: service_healthy  # 🔥 Esperar a que RabbitMQ esté healthy
+        condition: service_healthy
     ports:
       - "3002:3002"
       - "4000:4000"
