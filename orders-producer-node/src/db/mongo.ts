@@ -11,7 +11,7 @@ class MongoSingleton {
   private constructor() {}
 
   static getInstance(): MongoSingleton {
-    if (!MongoSingleton.instance) MongoSingleton.instance = new MongoSingleton();
+    MongoSingleton.instance ??= new MongoSingleton();
     return MongoSingleton.instance;
   }
 
