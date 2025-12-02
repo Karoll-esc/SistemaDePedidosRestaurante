@@ -2,79 +2,50 @@ import { Link } from 'react-router-dom';
 
 export function HomePage() {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      gap: '2rem',
-      backgroundColor: '#f5f5f5'
-    }}>
-      <h1 style={{
-        fontSize: '2.5rem',
-        color: '#333',
-        marginBottom: '1rem'
-      }}>
-        Sistema de Pedidos de Restaurante
-      </h1>
-      
-      <div style={{
-        display: 'flex',
-        gap: '2rem',
-        flexWrap: 'wrap',
-        justifyContent: 'center'
-      }}>
-        <Link 
-          to="/mesero"
-          style={{
-            padding: '2rem 3rem',
-            fontSize: '1.5rem',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 8px rgba(0,0,0,0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-          }}
-        >
-          Soy Mesero
-        </Link>
+    <div className="flex min-h-screen">
+      {/* Chef Section - Left Side */}
+      <Link 
+        to="/cocina"
+        className="flex-1 bg-gradient-to-br from-orange-400 to-orange-500 hover:from-orange-500/70 hover:to-orange-600 transition-all duration-300 flex flex-col items-center justify-center text-white relative group overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-8 px-8">
+          <h2 className="text-4xl md:text-5xl font-bold text-center">
+            I'm a Chef
+          </h2>
+          
+          <div className="w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+            <img 
+              src="/images/chef-image.png" 
+              alt="Chef"
+              className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        </div>
+      </Link>
 
-        <Link 
-          to="/cocina"
-          style={{
-            padding: '2rem 3rem',
-            fontSize: '1.5rem',
-            backgroundColor: '#FF9800',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 8px rgba(0,0,0,0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-          }}
-        >
-          Soy Cocina
-        </Link>
-      </div>
+      {/* Waiter Section - Right Side */}
+      <Link 
+        to="/mesero"
+        className="flex-1 bg-gradient-to-br from-blue-300 to-blue-400 hover:from-blue-500/50 hover:to-blue-600/50 transition-all duration-300 flex flex-col items-center justify-center text-white relative group overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-8 px-8">
+          <h2 className="text-4xl md:text-5xl font-bold text-center">
+            I'm a Waiter
+          </h2>
+          
+          <div className="w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+            <img 
+              src="/images/waiter_image.png" 
+              alt="Waiter"
+              className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }
