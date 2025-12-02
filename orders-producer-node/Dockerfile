@@ -1,22 +1,16 @@
 # orders-producer-node/Dockerfile
-FROM node:22-alpine AS builder
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Install dependencies and build TypeScript
-COPY package*.json tsconfig.json ./
-RUN npm ci
-COPY src ./src
-RUN npm run build
-
-FROM node:22-alpine AS runtime
-WORKDIR /app
-
-# Only production dependencies and compiled output
 COPY package*.json ./
-RUN npm ci --production
-COPY --from=builder /app/dist ./dist
+COPY tsconfig.json ./
+
+RUN npm install
+
+# Copiamos el código fuente
+COPY src ./src
 
 EXPOSE 3002 4000
 
-CMD ["node", "dist/index.js"]
+CMD ["npm", "run", "dev"]
