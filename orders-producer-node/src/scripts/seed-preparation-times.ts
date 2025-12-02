@@ -12,8 +12,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import MongoSingleton from "../db/mongo";
-import { PreparationTime } from "../models/preparation-time";
+import MongoSingleton from "../infrastructure/database/mongo";
+import { PreparationTime } from "../domain/models/preparation-time";
 
 // Aceptar URI como argumento de línea de comandos
 let mongoUri = process.argv[2] || process.env.MONGO_URI || process.env.MONGO_URL;
