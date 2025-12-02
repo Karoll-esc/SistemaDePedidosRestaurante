@@ -16,7 +16,6 @@ interface Product {
 interface Order {
   id: string;
   customerName: string;
-  phone: string;
   time: string;
   table: string;
   products: Product[];
@@ -48,7 +47,6 @@ export function KitchenOrderCard({ order, onStartCooking, onMarkAsReady, onCompl
         <div className="flex items-start justify-between mb-3">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{order.customerName}</h3>
-            <p className="text-sm text-gray-500">{order.phone}</p>
           </div>
           <span className="text-sm font-medium text-gray-600">{order.id}</span>
         </div>
