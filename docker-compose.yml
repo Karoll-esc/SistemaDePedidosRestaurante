@@ -14,20 +14,6 @@ services:
       timeout: 5s
       retries: 5
 
-  mongo:
-    image: mongo:6
-    container_name: mongo
-    restart: unless-stopped
-    volumes:
-      - mongo-data:/data/db
-    ports:
-      - "27017:27017"
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   python-ms:
     build:
       context: ./orders-producer-python
@@ -54,13 +40,8 @@ services:
       - AMQP_LOCAL_USER=guest
       - AMQP_LOCAL_PASS=guest
       - AMQP_LOCAL_PROTOCOL=amqp
-      - USE_MONGO=true
-      - MONGO_URI=mongodb://mongo:27017/
-      - MONGO_DB=orders_db
     depends_on:
       rabbitmq:
-        condition: service_healthy
-      mongo:
         condition: service_healthy
     ports:
       - "3002:3002"
@@ -75,6 +56,3 @@ services:
       - node-ms
     ports:
       - "5173:5173"
-
-volumes:
-  mongo-data:
