@@ -1,19 +1,15 @@
 from fastapi import APIRouter, HTTPException
 from app.models.order import OrderIn, OrderMessage
 from app.services.order_service import OrderService
-from app.repositories.order_repository import MongoOrderRepository
-from pymongo import MongoClient
+from app.repositories.order_repository import InMemoryOrderRepository
 
 router = APIRouter(
     prefix="/api/v1/orders",
     tags=["orders"],
 )
 
-
-# Instancia real de MongoDB (ajusta la URI según tu entorno)
-mongo_client = MongoClient("mongodb://localhost:27017/")
-mongo_collection = mongo_client["orders_db"]["orders"]
-order_repository = MongoOrderRepository(mongo_collection)
+# Instancia única del repositorio y servicio (singleton simple para este contexto)
+order_repository = InMemoryOrderRepository()
 order_service = OrderService(order_repository)
 
 @router.post("/", response_model=OrderMessage, status_code=201)

@@ -8,26 +8,7 @@ patcher.start()
 
 import pytest
 from app.models.order import OrderIn, OrderItem
-from app.models.order import OrderMessage
-
-# Implementación en memoria para pruebas
-class InMemoryOrderRepository:
-    def __init__(self):
-        self.orders = {}
-
-    def add(self, order: OrderMessage):
-        self.orders[order.id] = order
-
-    def get(self, order_id: str):
-        return self.orders.get(order_id)
-
-    def update(self, order_id: str, order: OrderMessage):
-        if order_id not in self.orders:
-            raise KeyError(f"Order {order_id} not found")
-        self.orders[order_id] = order
-
-    def list(self):
-        return list(self.orders.values())
+from app.repositories.order_repository import InMemoryOrderRepository
 from app.services.order_service import OrderService
 
 @pytest.fixture(scope="session", autouse=True)
