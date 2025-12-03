@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { setOrderRepository, getKitchenOrders, addKitchenOrder, markOrderReady, removeOrderFromKitchen } from "../../../../infrastructure/http/controllers/kitchen.controller";
+import { setOrderRepository, getRepository, getKitchenOrders, addKitchenOrder, markOrderReady, removeOrderFromKitchen } from "../../../../infrastructure/http/controllers/kitchen.controller";
 
 describe("kitchen.controller repo not initialized branches", () => {
   beforeEach(() => {
@@ -7,7 +7,26 @@ describe("kitchen.controller repo not initialized branches", () => {
     setOrderRepository(null as any);
   });
 
+  it("getRepository throws error when repo is null", () => {
+    expect(() => getRepository()).toThrow("Repository no inicializado");
+  });
+
+  it("getRepository returns repo when initialized", () => {
+    const mockRepo = {
+      getById: jest.fn(),
+      create: jest.fn(),
+      remove: jest.fn(),
+      getAll: jest.fn(),
+      updateStatus: jest.fn(),
+    };
+    setOrderRepository(mockRepo as any);
+    
+    const result = getRepository();
+    expect(result).toBe(mockRepo);
+  });
+
   it("getKitchenOrders returns 500 when repo is null", async () => {
+    setOrderRepository(null as any);
     const req = {} as Request;
     const status = jest.fn().mockReturnThis();
     const json = jest.fn();

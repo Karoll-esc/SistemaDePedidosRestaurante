@@ -18,6 +18,14 @@ const mockChannel = {
   checkQueue: jest.fn(),
 };
 
+const mockRepository = {
+  getById: jest.fn().mockResolvedValue(null),
+  create: jest.fn().mockResolvedValue(undefined),
+  remove: jest.fn().mockResolvedValue(undefined),
+  getAll: jest.fn().mockResolvedValue([]),
+  updateStatus: jest.fn().mockResolvedValue(true),
+};
+
 describe("worker.ts - startWorker", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -26,6 +34,13 @@ describe("worker.ts - startWorker", () => {
     (amqp.sendToDLQ as jest.Mock).mockResolvedValue(undefined);
     (wsServer.notifyClients as jest.Mock).mockImplementation(() => {});
     (kitchenController.addKitchenOrder as jest.Mock).mockResolvedValue(undefined);
+    (kitchenController.getRepository as jest.Mock).mockReturnValue(mockRepository);
+    
+    // Reset repository mocks
+    mockRepository.getById.mockResolvedValue(null);
+    mockRepository.create.mockResolvedValue(undefined);
+    mockRepository.remove.mockResolvedValue(undefined);
+    
     mockChannel.checkQueue.mockResolvedValue({ messageCount: 1 });
   });
 
@@ -64,6 +79,59 @@ describe("worker.ts - startWorker", () => {
     const calledOrder = (kitchenController.addKitchenOrder as jest.Mock).mock.calls[0][0];
     expect(calledOrder.status).toBe("pending");
     expect(wsServer.notifyClients).toHaveBeenCalledWith({ type: "ORDER_NEW", order });
+    expect(mockChannel.ack).toHaveBeenCalledWith(mockMessage);
+  });
+
+  it("actualiza orden existente preservando el estado actual", async () => {
+    const { startWorker } = await import("../../../infrastructure/messaging/worker");
+    
+    const existingOrder = {
+      id: "ORD-UPDATE",
+      customerName: "Cliente Original",
+      items: [{ productName: "Pizza", quantity: 1, unitPrice: 10000 }],
+      table: "5",
+      status: "preparing",
+      createdAt: "2025-01-01T10:00:00.000Z"
+    };
+    
+    const updatedOrderMessage = {
+      id: "ORD-UPDATE",
+      customerName: "Cliente Actualizado",
+      items: [{ productName: "Pizza", quantity: 2, unitPrice: 10000 }],
+      table: "6",
+    };
+
+    // Mock getById para retornar orden existente
+    mockRepository.getById.mockResolvedValue(existingOrder);
+
+    await startWorker();
+
+    const consumeCallback = mockChannel.consume.mock.calls[0][1];
+    const mockMessage = {
+      content: Buffer.from(JSON.stringify(updatedOrderMessage)),
+      properties: { correlationId: "corr-update" },
+    };
+
+    await consumeCallback(mockMessage);
+
+    // Verificar que se llamó a remove y create para actualizar
+    expect(mockRepository.getById).toHaveBeenCalledWith("ORD-UPDATE");
+    expect(mockRepository.remove).toHaveBeenCalledWith("ORD-UPDATE");
+    expect(mockRepository.create).toHaveBeenCalled();
+    
+    // Verificar que se preservó el estado "preparing"
+    const createdOrder = mockRepository.create.mock.calls[0][0];
+    expect(createdOrder.status).toBe("preparing");
+    expect(createdOrder.customerName).toBe("Cliente Actualizado");
+    
+    // Verificar notificación de actualización
+    expect(wsServer.notifyClients).toHaveBeenCalledWith({ 
+      type: "ORDER_UPDATED", 
+      order: expect.objectContaining({ 
+        id: "ORD-UPDATE",
+        status: "preparing"
+      })
+    });
     expect(mockChannel.ack).toHaveBeenCalledWith(mockMessage);
   });
 
