@@ -51,3 +51,27 @@ export async function getKitchenOrders(): Promise<ApiResponse<ApiOrder[]>> {
 
   return data;
 }
+
+/**
+ * Update order status through the API Gateway
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled'
+): Promise<ApiResponse<{ success: boolean; id: string; status: string }>> {
+  const response = await fetch(API_ENDPOINTS.UPDATE_ORDER_STATUS(orderId), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Error al actualizar estado del pedido');
+  }
+
+  return data;
+}
