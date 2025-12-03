@@ -11,9 +11,11 @@ export class KitchenController {
     this.proxyService = proxyService;
   }
 
-  getOrders = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const response = await this.proxyService.forward('/kitchen/orders', 'GET');
+      const qs = new URLSearchParams(req.query as Record<string, string>).toString();
+      const path = qs ? `/kitchen/orders?${qs}` : '/kitchen/orders';
+      const response = await this.proxyService.forward(path, 'GET');
       
       res.status(HTTP_STATUS.OK).json(
         formatSuccessResponse(response.data)
