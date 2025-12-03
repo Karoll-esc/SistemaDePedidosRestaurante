@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getKitchenOrders } from '../services/orderService';
+import { API_ENDPOINTS } from '../config/api';
 import type { ApiOrder } from '../types/order';
 import type { OrderStatus } from '../components/KitchenOrderCard';
 
@@ -7,7 +8,8 @@ const KITCHEN_WS_URL = 'ws://localhost:4000';
 
 // Order type matching KitchenOrderCard interface
 export interface KitchenOrder {
-  id: string;
+  id: string; // Display ID (e.g., #ABC)
+  realId: string; // Full UUID for API calls
   customerName: string;
   phone: string;
   time: string;
@@ -63,6 +65,7 @@ const mapApiOrderToKitchenOrder = (order: ApiOrder): KitchenOrder => {
 
   return {
     id: `#${order.id.slice(0, 3).toUpperCase()}`,
+    realId: order.id, // Store full UUID for API calls
     customerName: order.customerName,
     phone: 'N/A', // Phone not available from API
     time: formatTime(order.createdAt),
@@ -87,8 +90,38 @@ export const useKitchenOrders = () => {
       const response = await getKitchenOrders();
       if (response.success && response.data) {
         const lista = Array.isArray(response.data) ? response.data : [response.data];
-        // Reverse so newest orders appear first
-        setOrders(lista.map(mapApiOrderToKitchenOrder).reverse());
+        const incoming = lista.map(mapApiOrderToKitchenOrder);
+        // Merge incoming with existing by id, preserve higher-precedence statuses
+        setOrders((prev: KitchenOrder[]) => {
+          // If no previous orders, just use incoming data directly
+          if (prev.length === 0) {
+            return incoming;
+          }
+          
+          const statusRank = { 'New Order': 0, 'Cooking': 1, 'Ready': 2, 'Completed': 3, 'Cancelled': 99 };
+          const byId = new Map<string, KitchenOrder>();
+          
+          // Start with incoming orders (latest from API)
+          for (const o of incoming) {
+            byId.set(o.id, o);
+          }
+          
+          // Update with existing orders only if they have higher-precedence status
+          for (const existing of prev) {
+            const incoming = byId.get(existing.id);
+            if (incoming) {
+              const existingRank = statusRank[existing.status] || 0;
+              const incomingRank = statusRank[incoming.status] || 0;
+              
+              // Keep existing status only if it's more advanced
+              if (existingRank > incomingRank) {
+                byId.set(existing.id, { ...incoming, status: existing.status });
+              }
+            }
+          }
+          
+          return Array.from(byId.values());
+        });
       }
     } catch (err) {
       console.error('Error loading kitchen orders', err);
@@ -118,10 +151,10 @@ export const useKitchenOrders = () => {
 
             if (msg.type === 'ORDER_NEW' && msg.order) {
               const newOrder = mapApiOrderToKitchenOrder(msg.order);
-              setOrders((prev) => {
-                const exists = prev.some((o) => o.id === newOrder.id);
+              setOrders((prev: KitchenOrder[]) => {
+                const exists = prev.some((o: KitchenOrder) => o.id === newOrder.id);
                 if (exists) {
-                  return prev.map((o) => (o.id === newOrder.id ? newOrder : o));
+                  return prev.map((o: KitchenOrder) => (o.id === newOrder.id ? newOrder : o));
                 }
                 // Add new orders at the beginning so they appear first
                 return [newOrder, ...prev];
@@ -129,8 +162,8 @@ export const useKitchenOrders = () => {
             }
 
             if (msg.type === 'ORDER_READY' && msg.id) {
-              setOrders((prev) =>
-                prev.map((o) =>
+              setOrders((prev: KitchenOrder[]) =>
+                prev.map((o: KitchenOrder) =>
                   o.id.includes(msg.id.slice(0, 3).toUpperCase())
                     ? { ...o, status: 'Ready' as OrderStatus }
                     : o
@@ -140,8 +173,8 @@ export const useKitchenOrders = () => {
 
             if (msg.type === 'ORDER_STATUS_UPDATE' && msg.id && msg.status) {
               const newStatus = mapApiStatusToOrderStatus(msg.status);
-              setOrders((prev) =>
-                prev.map((o) =>
+              setOrders((prev: KitchenOrder[]) =>
+                prev.map((o: KitchenOrder) =>
                   o.id.includes(msg.id.slice(0, 3).toUpperCase())
                     ? { ...o, status: newStatus }
                     : o
@@ -185,53 +218,73 @@ export const useKitchenOrders = () => {
     };
   }, [fetchOrders]);
 
-  // Update order status locally
-  const updateOrderStatus = useCallback((orderId: string, newStatus: OrderStatus) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
-  }, []);
+  // Update order status via API
+  const updateOrderStatusAPI = useCallback(async (realId: string, apiStatus: string) => {
+    try {
+      const response = await fetch(API_ENDPOINTS.UPDATE_ORDER_STATUS(realId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: apiStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update order status: ${response.statusText}`);
+      }
+
+      // Refetch orders after successful update to sync state
+      await fetchOrders();
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      // Revert optimistic update by refetching
+      await fetchOrders();
+    }
+  }, [fetchOrders]);
 
   // Handler for starting cooking
   const startCooking = useCallback((orderId: string) => {
-    updateOrderStatus(orderId, 'Cooking');
-    // TODO: Send status update to backend via WebSocket or API
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'ORDER_STATUS_UPDATE',
-        id: orderId,
-        status: 'preparing'
-      }));
-    }
-  }, [updateOrderStatus]);
+    // Find order to get realId
+    const order = orders.find((o: KitchenOrder) => o.id === orderId);
+    if (!order) return;
+
+    // Optimistic update
+    setOrders((prev: KitchenOrder[]) =>
+      prev.map((o: KitchenOrder) =>
+        o.id === orderId ? { ...o, status: 'Cooking' } : o
+      )
+    );
+    // API call with real UUID
+    updateOrderStatusAPI(order.realId, 'preparing');
+  }, [orders, updateOrderStatusAPI]);
 
   // Handler for marking as ready
   const markAsReady = useCallback((orderId: string) => {
-    updateOrderStatus(orderId, 'Ready');
-    // TODO: Send status update to backend via WebSocket or API
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'ORDER_STATUS_UPDATE',
-        id: orderId,
-        status: 'ready'
-      }));
-    }
-  }, [updateOrderStatus]);
+    const order = orders.find((o: KitchenOrder) => o.id === orderId);
+    if (!order) return;
+
+    // Optimistic update
+    setOrders((prev: KitchenOrder[]) =>
+      prev.map((o: KitchenOrder) =>
+        o.id === orderId ? { ...o, status: 'Ready' } : o
+      )
+    );
+    // API call with real UUID
+    updateOrderStatusAPI(order.realId, 'ready');
+  }, [orders, updateOrderStatusAPI]);
 
   // Handler for completing order
   const completeOrder = useCallback((orderId: string) => {
-    updateOrderStatus(orderId, 'Completed');
-    // TODO: Send status update to backend via WebSocket or API
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'ORDER_STATUS_UPDATE',
-        id: orderId,
-        status: 'completed'
-      }));
-    }
-  }, [updateOrderStatus]);
+    const order = orders.find((o: KitchenOrder) => o.id === orderId);
+    if (!order) return;
+
+    // Optimistic update
+    setOrders((prev: KitchenOrder[]) =>
+      prev.map((o: KitchenOrder) =>
+        o.id === orderId ? { ...o, status: 'Completed' } : o
+      )
+    );
+    // API call with real UUID
+    updateOrderStatusAPI(order.realId, 'completed');
+  }, [orders, updateOrderStatusAPI]);
 
   return {
     orders,

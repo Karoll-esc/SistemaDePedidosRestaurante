@@ -41,7 +41,7 @@ export async function getOrderById(orderId: string): Promise<ApiResponse<ApiOrde
  * Get all kitchen orders through the API Gateway
  */
 export async function getKitchenOrders(): Promise<ApiResponse<ApiOrder[]>> {
-  const response = await fetch(API_ENDPOINTS.KITCHEN_ORDERS);
+  const response = await fetch(`${API_ENDPOINTS.KITCHEN_ORDERS}?status=all`);
   
   const data = await response.json();
 
