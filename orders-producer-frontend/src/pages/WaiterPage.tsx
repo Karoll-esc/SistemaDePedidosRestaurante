@@ -209,7 +209,7 @@ export function WaiterPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditOrder(order)}
-                          className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-7 w-7 p-0 cursor-pointer"
                           title="Edit order"
                         >
                           <Pencil className="h-3.5 w-3.5" />
