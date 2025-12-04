@@ -1,4 +1,13 @@
 import type { Request, Response, NextFunction } from "express";
+
+// Mock WebSocket module before importing controller
+jest.mock("../../../../infrastructure/websocket/ws-server", () => ({
+  notifyClients: jest.fn(),
+  wss: {
+    clients: new Set()
+  }
+}));
+
 import { setOrderRepository, updateOrderStatus } from "../../../../infrastructure/http/controllers/kitchen.controller";
 import { OrderRepository } from "../../../../domain/interfaces/order.interface";
 
@@ -11,6 +20,8 @@ describe("kitchen.controller - updateOrderStatus", () => {
   let jsonMock: jest.Mock;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    
     mockRepo = {
       getAll: jest.fn(),
       create: jest.fn(),
@@ -150,6 +161,7 @@ describe("kitchen.controller - updateOrderStatus", () => {
     
     for (const status of validStatuses) {
       mockRepo.updateStatus.mockResolvedValue(true);
+      mockRepo.getById.mockResolvedValue(null); // No order found after update
       req.params = { id: "order-123" };
       req.body = { status };
 
@@ -158,5 +170,40 @@ describe("kitchen.controller - updateOrderStatus", () => {
       expect(mockRepo.updateStatus).toHaveBeenCalledWith("order-123", status);
       expect(jsonMock).toHaveBeenCalledWith({ success: true, id: "order-123", status });
     }
+  });
+
+  it("notifica a clientes WebSocket cuando la orden se actualiza exitosamente", async () => {
+    const updatedOrder = {
+      id: "order-123",
+      customerName: "Test Customer",
+      items: [{ productName: "Pizza", quantity: 1, unitPrice: 10000 }],
+      table: "5",
+      status: "preparing" as const,
+      createdAt: "2025-01-01T10:00:00.000Z"
+    };
+
+    req.params = { id: "order-123" };
+    req.body = { status: "preparing" };
+    mockRepo.updateStatus.mockResolvedValue(true);
+    mockRepo.getById.mockResolvedValue(updatedOrder);
+
+    await updateOrderStatus(req as Request, res as Response, next);
+
+    expect(mockRepo.getById).toHaveBeenCalledWith("order-123");
+    expect(jsonMock).toHaveBeenCalledWith({ success: true, id: "order-123", status: "preparing" });
+  });
+
+  it("continúa sin error cuando getById retorna null después de actualizar", async () => {
+    req.params = { id: "order-123" };
+    req.body = { status: "preparing" };
+    mockRepo.updateStatus.mockResolvedValue(true);
+    mockRepo.getById.mockResolvedValue(null);
+
+    await updateOrderStatus(req as Request, res as Response, next);
+
+    expect(mockRepo.updateStatus).toHaveBeenCalledWith("order-123", "preparing");
+    expect(mockRepo.getById).toHaveBeenCalledWith("order-123");
+    expect(jsonMock).toHaveBeenCalledWith({ success: true, id: "order-123", status: "preparing" });
+    expect(next).not.toHaveBeenCalled();
   });
 });

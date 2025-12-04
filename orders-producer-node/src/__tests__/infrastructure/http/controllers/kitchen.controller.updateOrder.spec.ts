@@ -1,4 +1,13 @@
 import type { Request, Response, NextFunction } from "express";
+
+// Mock WebSocket module before importing controller
+jest.mock("../../../../infrastructure/websocket/ws-server", () => ({
+  notifyClients: jest.fn(),
+  wss: {
+    clients: new Set()
+  }
+}));
+
 import { setOrderRepository, updateOrder } from "../../../../infrastructure/http/controllers/kitchen.controller";
 import { KitchenOrder } from "../../../../domain/models/order";
 
@@ -11,6 +20,8 @@ describe("kitchen.controller - updateOrder", () => {
   let jsonMock: jest.Mock;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    
     mockRepo = {
       getById: jest.fn(),
       create: jest.fn(),

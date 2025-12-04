@@ -1,4 +1,13 @@
 import type { Request, Response } from "express";
+
+// Mock WebSocket module before importing controller
+jest.mock("../../../../infrastructure/websocket/ws-server", () => ({
+  notifyClients: jest.fn(),
+  wss: {
+    clients: new Set()
+  }
+}));
+
 import { setOrderRepository, getRepository, getKitchenOrders, addKitchenOrder, markOrderReady, removeOrderFromKitchen } from "../../../../infrastructure/http/controllers/kitchen.controller";
 
 describe("kitchen.controller repo not initialized branches", () => {
